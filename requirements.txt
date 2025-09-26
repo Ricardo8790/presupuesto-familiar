@@ -1,3 +1,6 @@
+gspread
+gspread-dataframe
+google-auth
 streamlit
 pandas
 altair
