@@ -1,73 +1,10 @@
 # archivo: presupuesto_familiar_app.py
-import gspread
-from gspread_dataframe import get_as_dataframe, set_with_dataframe
-import json
-import uuid
 import streamlit as st
 import pandas as pd
 import json
 import os
 from datetime import datetime
 import altair as alt
-
-# Función para obtener conexión con Google Sheets usando st.secrets
-def conectar_sheets():
-    # st.secrets["gcp"]["service_account"] contiene JSON (string)
-    sa_info = json.loads(st.secrets["gcp"]["service_account"])
-    gc = gspread.service_account_from_dict(sa_info)
-    sh = gc.open_by_key(st.secrets["gcp"]["sheet_id"])
-    return sh
-
-# Cargar datos desde sheets a DataFrames
-def cargar_datos_sheets():
-    sh = conectar_sheets()
-    # obtiene o crea worksheet 'gastos' e 'ingresos'
-    try:
-        ws_g = sh.worksheet("gastos")
-    except gspread.WorksheetNotFound:
-        ws_g = sh.add_worksheet("gastos", rows=1000, cols=20)
-        ws_g.append_row(["id","fecha","categoria","subcategoria","medio_pago","monto","descripcion"])
-    try:
-        ws_i = sh.worksheet("ingresos")
-    except gspread.WorksheetNotFound:
-        ws_i = sh.add_worksheet("ingresos", rows=1000, cols=20)
-        ws_i.append_row(["id","fecha","monto","descripcion"])
-    df_gastos = get_as_dataframe(ws_g, usecols=None, evaluate_formulas=True).fillna("")
-    df_ingresos = get_as_dataframe(ws_i, usecols=None, evaluate_formulas=True).fillna("")
-    # quitar filas vacías generadas por gspread
-    df_gastos = df_gastos.dropna(how="all").reset_index(drop=True)
-    df_ingresos = df_ingresos.dropna(how="all").reset_index(drop=True)
-    return df_gastos, df_ingresos, ws_g, ws_i
-
-# Añadir un gasto (append)
-def append_gasto_to_sheet(row_dict, ws_g):
-    # row_dict debe tener: id, fecha, categoria, subcategoria, medio_pago, monto, descripcion
-    row = [row_dict.get("id"),
-           row_dict.get("fecha"),
-           row_dict.get("categoria"),
-           row_dict.get("subcategoria"),
-           row_dict.get("medio_pago"),
-           row_dict.get("monto"),
-           row_dict.get("descripcion")]
-    ws_g.append_row(row, value_input_option="USER_ENTERED")
-
-# Ejemplo de uso dentro del flujo de tu app (en 'Registrar gasto'):
-if menu == "Añadir Gasto":
-    # ... tu UI para monto, categoria, medio_pago, etc.
-    if st.button("Registrar gasto"):
-        nuevo = {
-            "id": str(uuid.uuid4()),
-            "fecha": fecha.strftime("%Y-%m-%d"),
-            "categoria": categoria,
-            "subcategoria": subcategoria,
-            "medio_pago": medio_pago,
-            "monto": monto,
-            "descripcion": descripcion
-        }
-        sh = conectar_sheets()
-        ws_g = sh.worksheet("gastos")
-        append_gasto_to_sheet(nuevo, ws_g)
-        st.success("Gasto guardado en Google Sheets ✅")
 
 # Configuración de la página
 st.set_page_config(page_title="Presupuesto Familiar", layout="wide")
@@ -1027,6 +964,3 @@ elif menu == "Eliminar Registro":
                 st.balloons()  # Efecto visual
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
-            st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
-
-
