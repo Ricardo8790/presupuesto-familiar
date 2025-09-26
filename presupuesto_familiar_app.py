@@ -62,7 +62,7 @@ categorias = {
     "Ropa y Calzado": ["Ropa", "Calzado", "Accesorios"],
     "Mascota y plantas": ["Alimentación", "Salud", "Accesorios", "Mantenimiento"],
     "Ahorro e Inversiones": ["Ahorro", "Inversiones", "Fondo emergencias"],
-    "Otros": ["Varios", "Donaciones", "Regalos", Padres]
+    "Otros": ["Varios", "Donaciones", "Regalos", "Padres"]
 }
 
 # ======= Estilo ejecutivo con fondo =======
@@ -948,3 +948,4 @@ elif menu == "Eliminar Registro":
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
 
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
