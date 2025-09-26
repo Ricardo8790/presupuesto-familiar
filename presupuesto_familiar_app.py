@@ -92,15 +92,27 @@ if menu == "Presupuesto Mensual":
     st.header("📊 Presupuesto Mensual")
     mes = st.selectbox("Seleccione mes y año", pd.date_range("2025-01-01", periods=12, freq="MS").strftime("%Y-%m"), key="pm_mes")
 
+    # Inicializar presupuesto para el mes si no existe
     if mes not in presupuesto:
-        presupuesto[mes] = {cat: 0.0 for cat in categorias.keys()}
+        presupuesto[mes] = {}
+    
+    # Asegurar que todas las categorías existen
+    for cat in categorias.keys():
+        if cat not in presupuesto[mes]:
+            presupuesto[mes][cat] = 0.0
 
     col_left, col_right = st.columns([1,2])
 
     with col_left:
         st.subheader(f"Definir presupuesto para {mes}")
         for cat in categorias.keys():
-            presupuesto[mes][cat] = st.number_input(f"{cat}", value=presupuesto[mes][cat], min_value=0.0, format="%.2f", key=f"pm_{cat}")
+            presupuesto[mes][cat] = st.number_input(
+                f"{cat}", 
+                value=float(presupuesto[mes][cat]), 
+                min_value=0.0, 
+                format="%.2f", 
+                key=f"pm_{cat}"
+            )
         
         if st.button("Guardar presupuesto", key="guardar_presupuesto"):
             guardar_presupuesto(presupuesto)
@@ -218,7 +230,7 @@ elif menu == "Añadir Gasto":
     descripcion = st.text_input("Descripción", value=desc_inicial, key="gasto_desc")
     categoria = st.selectbox("Categoría", list(categorias.keys()), key="gasto_cat")
     subcategoria = st.selectbox("Subcategoría", categorias[categoria], key="gasto_subcat")
-    medio_pago = st.selectbox("Medio de Pago", ["Efectivo", "Tarjeta de Crédito"], key="gasto_mediopago")
+    medio_pago = st.selectbox("Medio de Pago", ["Efectivo", "Tarjeta de Crédito", "Transferencia"], key="gasto_mediopago")
     fecha = st.date_input("Fecha", value=fecha_inicial, key="gasto_fecha")
 
     if st.button("Registrar gasto", key="btn_gasto"):
@@ -436,6 +448,58 @@ elif menu == "Reporte Detallado":
                 gastos_display = gastos_display[["fecha", "categoria", "subcategoria", "Monto", "descripcion", "medio_pago"]]
                 gastos_display.columns = ["Fecha", "Categoría", "Subcategoría", "Monto", "Descripción", "Medio de Pago"]
                 st.dataframe(gastos_display, use_container_width=True)
+            
+            # ============ NUEVO: RESUMEN POR SUBCATEGORÍA ============
+            if not gastos_filtrados.empty:
+                st.subheader("📋 Resumen por Subcategoría")
+                
+                # Agrupar por subcategoría
+                resumen_subcat = gastos_filtrados.groupby("subcategoria")["monto"].sum().reset_index()
+                resumen_subcat.columns = ["Subcategoría", "Monto Total"]
+                
+                # Calcular porcentajes
+                total_gastos_subcategoria = resumen_subcat["Monto Total"].sum()
+                resumen_subcat["Porcentaje"] = (resumen_subcat["Monto Total"] / total_gastos_subcategoria * 100).round(2)
+                
+                # Formatear para mostrar
+                resumen_subcat_display = resumen_subcat.copy()
+                resumen_subcat_display["Monto Total"] = resumen_subcat_display["Monto Total"].apply(lambda x: f"${x:,.2f}")
+                resumen_subcat_display["Porcentaje"] = resumen_subcat_display["Porcentaje"].apply(lambda x: f"{x}%")
+                
+                st.dataframe(resumen_subcat_display, use_container_width=True, hide_index=True)
+            
+            # ============ NUEVO: RESUMEN POR MEDIO DE PAGO ============
+            if not gastos_filtrados.empty:
+                st.subheader("💳 Resumen por Medio de Pago")
+                
+                # Obtener todos los medios de pago únicos que existen en los datos
+                medios_pago_existentes = gastos_filtrados['medio_pago'].unique()
+                
+                if len(medios_pago_existentes) > 0:
+                    # Agrupar por medio de pago
+                    resumen_medio_pago = gastos_filtrados.groupby("medio_pago")["monto"].sum().reset_index()
+                    resumen_medio_pago.columns = ["Medio de Pago", "Monto Total"]
+                    
+                    # Ordenar por monto total descendente
+                    resumen_medio_pago = resumen_medio_pago.sort_values("Monto Total", ascending=False)
+                    
+                    # Calcular porcentajes
+                    total_gastos_medio = resumen_medio_pago["Monto Total"].sum()
+                    resumen_medio_pago["Porcentaje"] = (resumen_medio_pago["Monto Total"] / total_gastos_medio * 100).round(2)
+                    
+                    # Formatear para mostrar
+                    resumen_medio_pago_display = resumen_medio_pago.copy()
+                    resumen_medio_pago_display["Monto Total"] = resumen_medio_pago_display["Monto Total"].apply(lambda x: f"${x:,.2f}")
+                    resumen_medio_pago_display["Porcentaje"] = resumen_medio_pago_display["Porcentaje"].apply(lambda x: f"{x}%")
+                    
+                    st.dataframe(resumen_medio_pago_display, use_container_width=True, hide_index=True)
+                    
+                    # Mostrar información adicional sobre los medios de pago
+                    st.caption(f"📊 Medios de pago utilizados: {', '.join(medios_pago_existentes)}")
+                else:
+                    st.info("📭 No hay información de medios de pago disponible.")
+            else:
+                st.info("📭 No hay gastos para analizar por medio de pago.")
         
         # ============ SECCIÓN 4: GRÁFICOS COMPARATIVOS ============
         st.subheader("📊 Análisis Visual")
@@ -567,74 +631,54 @@ elif menu == "Editar Registro":
                 idx_ingreso = int(ingreso_seleccionado.split("]")[0].replace("[", ""))
                 ingreso_actual = data["ingresos"][idx_ingreso]
                 
-                st.subheader("📊 Datos actuales vs nuevos datos")
+                st.subheader("✏️ Editar Datos del Ingreso")
                 
-                col_actual, col_nuevo = st.columns(2)
+                # Campos de edición directa
+                nuevo_monto_texto = st.text_input(
+                    "Monto:", 
+                    value=f"{ingreso_actual['monto']:.2f}",
+                    key="edit_ingreso_monto",
+                    help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
+                )
                 
-                with col_actual:
-                    st.markdown("**📋 Datos Actuales:**")
-                    st.info(f"**Monto:** ${ingreso_actual['monto']:.2f}")
-                    st.info(f"**Descripción:** {ingreso_actual['descripcion']}")
-                    st.info(f"**Fecha:** {ingreso_actual['fecha']}")
-                
-                with col_nuevo:
-                    st.markdown("**✏️ Nuevos Datos:**")
-                    
-                    # Campos de edición
-                    nuevo_monto_texto = st.text_input(
-                        "Nuevo monto:", 
-                        value=f"{ingreso_actual['monto']:.2f}",
-                        key="edit_ingreso_monto",
-                        help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
-                    )
-                    
-                    # Validar monto
-                    try:
-                        nuevo_monto = float(nuevo_monto_texto.replace(",", "")) if nuevo_monto_texto.strip() != "" else 0.0
-                        if nuevo_monto <= 0:
-                            st.error("❌ El monto debe ser mayor que 0.")
-                            nuevo_monto = ingreso_actual['monto']  # Mantener valor original
-                    except ValueError:
-                        st.error("❌ Por favor ingrese un número válido")
+                # Validar monto
+                try:
+                    nuevo_monto = float(nuevo_monto_texto.replace(",", "")) if nuevo_monto_texto.strip() != "" else 0.0
+                    if nuevo_monto <= 0:
+                        st.error("❌ El monto debe ser mayor que 0.")
                         nuevo_monto = ingreso_actual['monto']  # Mantener valor original
-                    
-                    nueva_descripcion = st.text_input(
-                        "Nueva descripción:",
-                        value=ingreso_actual['descripcion'],
-                        key="edit_ingreso_desc"
-                    )
-                    
-                    nueva_fecha = st.date_input(
-                        "Nueva fecha:",
-                        value=pd.to_datetime(ingreso_actual['fecha']).date(),
-                        key="edit_ingreso_fecha"
-                    )
+                except ValueError:
+                    st.error("❌ Por favor ingrese un número válido")
+                    nuevo_monto = ingreso_actual['monto']  # Mantener valor original
                 
-                # Mostrar vista previa de cambios
-                if (nuevo_monto != ingreso_actual['monto'] or 
-                    nueva_descripcion != ingreso_actual['descripcion'] or 
-                    nueva_fecha.strftime("%Y-%m-%d") != ingreso_actual['fecha']):
-                    
-                    st.subheader("🔍 Vista Previa de Cambios")
-                    st.warning(f"💰 Nuevo registro: ${nuevo_monto:,.2f} - {nueva_descripcion} ({nueva_fecha})")
-                    
-                    if st.button("💾 Actualizar Ingreso", key="btn_actualizar_ingreso", type="primary"):
-                        if nueva_descripcion.strip() == "":
-                            st.error("❌ La descripción no puede estar vacía.")
-                        else:
-                            # Actualizar el registro
-                            data["ingresos"][idx_ingreso] = {
-                                "monto": nuevo_monto,
-                                "descripcion": nueva_descripcion.strip(),
-                                "fecha": nueva_fecha.strftime("%Y-%m-%d")
-                            }
-                            guardar_datos(data)
-                            
-                            # Guardar mensaje para mostrar después del rerun
-                            st.session_state["mensaje_edicion_exitoso"] = f"💰 Ingreso actualizado: ${nuevo_monto:,.2f} - {nueva_descripcion}"
-                            st.rerun()
-                else:
-                    st.info("ℹ️ No se detectaron cambios en los datos.")
+                nueva_descripcion = st.text_input(
+                    "Descripción:",
+                    value=ingreso_actual['descripcion'],
+                    key="edit_ingreso_desc"
+                )
+                
+                nueva_fecha = st.date_input(
+                    "Fecha:",
+                    value=pd.to_datetime(ingreso_actual['fecha']).date(),
+                    key="edit_ingreso_fecha"
+                )
+                
+                # Botón de actualización
+                if st.button("💾 Actualizar Ingreso", key="btn_actualizar_ingreso", type="primary"):
+                    if nueva_descripcion.strip() == "":
+                        st.error("❌ La descripción no puede estar vacía.")
+                    else:
+                        # Actualizar el registro
+                        data["ingresos"][idx_ingreso] = {
+                            "monto": nuevo_monto,
+                            "descripcion": nueva_descripcion.strip(),
+                            "fecha": nueva_fecha.strftime("%Y-%m-%d")
+                        }
+                        guardar_datos(data)
+                        
+                        # Guardar mensaje para mostrar después del rerun
+                        st.session_state["mensaje_edicion_exitoso"] = f"💰 Ingreso actualizado: ${nuevo_monto:,.2f} - {nueva_descripcion}"
+                        st.rerun()
         else:
             st.info("📭 No hay ingresos registrados para editar.")
     
@@ -660,107 +704,78 @@ elif menu == "Editar Registro":
                 idx_gasto = int(gasto_seleccionado.split("]")[0].replace("[", ""))
                 gasto_actual = data["gastos"][idx_gasto]
                 
-                st.subheader("📊 Datos actuales vs nuevos datos")
+                st.subheader("✏️ Editar Datos del Gasto")
                 
-                col_actual, col_nuevo = st.columns(2)
-                
-                with col_actual:
-                    st.markdown("**📋 Datos Actuales:**")
-                    st.info(f"**Monto:** ${gasto_actual['monto']:.2f}")
-                    st.info(f"**Descripción:** {gasto_actual['descripcion']}")
-                    st.info(f"**Categoría:** {gasto_actual['categoria']}")
-                    st.info(f"**Subcategoría:** {gasto_actual['subcategoria']}")
-                    st.info(f"**Medio de Pago:** {gasto_actual.get('medio_pago', 'N/A')}")
-                    st.info(f"**Fecha:** {gasto_actual['fecha']}")
-                
-                with col_nuevo:
-                    st.markdown("**✏️ Nuevos Datos:**")
-                    
-                    # Campos de edición
-                    nuevo_monto_texto = st.text_input(
-                        "Nuevo monto:", 
-                        value=f"{gasto_actual['monto']:.2f}",
-                        key="edit_gasto_monto",
-                        help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
-                    )
-                    
-                    # Validar monto
-                    try:
-                        nuevo_monto = float(nuevo_monto_texto.replace(",", "")) if nuevo_monto_texto.strip() != "" else 0.0
-                        if nuevo_monto <= 0:
-                            st.error("❌ El monto debe ser mayor que 0.")
-                            nuevo_monto = gasto_actual['monto']  # Mantener valor original
-                    except ValueError:
-                        st.error("❌ Por favor ingrese un número válido")
-                        nuevo_monto = gasto_actual['monto']  # Mantener valor original
-                    
-                    nueva_descripcion = st.text_input(
-                        "Nueva descripción:",
-                        value=gasto_actual['descripcion'],
-                        key="edit_gasto_desc"
-                    )
-                    
-                    nueva_categoria = st.selectbox(
-                        "Nueva categoría:",
-                        list(categorias.keys()),
-                        index=list(categorias.keys()).index(gasto_actual['categoria']),
-                        key="edit_gasto_cat"
-                    )
-                    
-                    nueva_subcategoria = st.selectbox(
-                        "Nueva subcategoría:",
-                        categorias[nueva_categoria],
-                        index=categorias[nueva_categoria].index(gasto_actual['subcategoria']) if gasto_actual['subcategoria'] in categorias[nueva_categoria] else 0,
-                        key="edit_gasto_subcat"
-                    )
-                    
-                    nuevo_medio_pago = st.selectbox(
-                        "Nuevo medio de pago:",
-                        ["Efectivo", "Tarjeta de Crédito"],
-                        index=0 if gasto_actual.get('medio_pago', 'Efectivo') == 'Efectivo' else 1,
-                        key="edit_gasto_mediopago"
-                    )
-                    
-                    nueva_fecha = st.date_input(
-                        "Nueva fecha:",
-                        value=pd.to_datetime(gasto_actual['fecha']).date(),
-                        key="edit_gasto_fecha"
-                    )
-                
-                # Mostrar vista previa de cambios
-                cambios_detectados = (
-                    nuevo_monto != gasto_actual['monto'] or 
-                    nueva_descripcion != gasto_actual['descripcion'] or 
-                    nueva_categoria != gasto_actual['categoria'] or 
-                    nueva_subcategoria != gasto_actual['subcategoria'] or 
-                    nuevo_medio_pago != gasto_actual.get('medio_pago', 'Efectivo') or 
-                    nueva_fecha.strftime("%Y-%m-%d") != gasto_actual['fecha']
+                # Campos de edición directa
+                nuevo_monto_texto = st.text_input(
+                    "Monto:", 
+                    value=f"{gasto_actual['monto']:.2f}",
+                    key="edit_gasto_monto",
+                    help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
                 )
                 
-                if cambios_detectados:
-                    st.subheader("🔍 Vista Previa de Cambios")
-                    st.warning(f"💸 Nuevo registro: ${nuevo_monto:,.2f} - {nueva_descripcion} - {nueva_categoria} ({nueva_fecha})")
-                    
-                    if st.button("💾 Actualizar Gasto", key="btn_actualizar_gasto", type="primary"):
-                        if nueva_descripcion.strip() == "":
-                            st.error("❌ La descripción no puede estar vacía.")
-                        else:
-                            # Actualizar el registro
-                            data["gastos"][idx_gasto] = {
-                                "monto": nuevo_monto,
-                                "descripcion": nueva_descripcion.strip(),
-                                "categoria": nueva_categoria,
-                                "subcategoria": nueva_subcategoria,
-                                "medio_pago": nuevo_medio_pago,
-                                "fecha": nueva_fecha.strftime("%Y-%m-%d")
-                            }
-                            guardar_datos(data)
-                            
-                            # Guardar mensaje para mostrar después del rerun
-                            st.session_state["mensaje_edicion_exitoso"] = f"💸 Gasto actualizado: ${nuevo_monto:,.2f} - {nueva_descripcion} ({nueva_categoria})"
-                            st.rerun()
-                else:
-                    st.info("ℹ️ No se detectaron cambios en los datos.")
+                # Validar monto
+                try:
+                    nuevo_monto = float(nuevo_monto_texto.replace(",", "")) if nuevo_monto_texto.strip() != "" else 0.0
+                    if nuevo_monto <= 0:
+                        st.error("❌ El monto debe ser mayor que 0.")
+                        nuevo_monto = gasto_actual['monto']  # Mantener valor original
+                except ValueError:
+                    st.error("❌ Por favor ingrese un número válido")
+                    nuevo_monto = gasto_actual['monto']  # Mantener valor original
+                
+                nueva_descripcion = st.text_input(
+                    "Descripción:",
+                    value=gasto_actual['descripcion'],
+                    key="edit_gasto_desc"
+                )
+                
+                nueva_categoria = st.selectbox(
+                    "Categoría:",
+                    list(categorias.keys()),
+                    index=list(categorias.keys()).index(gasto_actual['categoria']),
+                    key="edit_gasto_cat"
+                )
+                
+                nueva_subcategoria = st.selectbox(
+                    "Subcategoría:",
+                    categorias[nueva_categoria],
+                    index=categorias[nueva_categoria].index(gasto_actual['subcategoria']) if gasto_actual['subcategoria'] in categorias[nueva_categoria] else 0,
+                    key="edit_gasto_subcat"
+                )
+                
+                nuevo_medio_pago = st.selectbox(
+                    "Medio de pago:",
+                    ["Efectivo", "Tarjeta de Crédito", "Transferencia"],
+                    index=["Efectivo", "Tarjeta de Crédito", "Transferencia"].index(gasto_actual.get('medio_pago', 'Efectivo')) if gasto_actual.get('medio_pago', 'Efectivo') in ["Efectivo", "Tarjeta de Crédito", "Transferencia"] else 0,
+                    key="edit_gasto_mediopago"
+                )
+                
+                nueva_fecha = st.date_input(
+                    "Fecha:",
+                    value=pd.to_datetime(gasto_actual['fecha']).date(),
+                    key="edit_gasto_fecha"
+                )
+                
+                # Botón de actualización
+                if st.button("💾 Actualizar Gasto", key="btn_actualizar_gasto", type="primary"):
+                    if nueva_descripcion.strip() == "":
+                        st.error("❌ La descripción no puede estar vacía.")
+                    else:
+                        # Actualizar el registro
+                        data["gastos"][idx_gasto] = {
+                            "monto": nuevo_monto,
+                            "descripcion": nueva_descripcion.strip(),
+                            "categoria": nueva_categoria,
+                            "subcategoria": nueva_subcategoria,
+                            "medio_pago": nuevo_medio_pago,
+                            "fecha": nueva_fecha.strftime("%Y-%m-%d")
+                        }
+                        guardar_datos(data)
+                        
+                        # Guardar mensaje para mostrar después del rerun
+                        st.session_state["mensaje_edicion_exitoso"] = f"💸 Gasto actualizado: ${nuevo_monto:,.2f} - {nueva_descripcion} ({nueva_categoria})"
+                        st.rerun()
         else:
             st.info("📭 No hay gastos registrados para editar.")
 
@@ -946,6 +961,4 @@ elif menu == "Eliminar Registro":
                 st.balloons()  # Efecto visual
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
-
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
-
