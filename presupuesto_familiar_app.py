@@ -964,3 +964,4 @@ elif menu == "Eliminar Registro":
                 st.balloons()  # Efecto visual
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
+            st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
