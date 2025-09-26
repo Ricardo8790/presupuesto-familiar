@@ -1029,3 +1029,4 @@ elif menu == "Eliminar Registro":
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
 
+
