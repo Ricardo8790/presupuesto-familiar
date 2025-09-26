@@ -617,7 +617,8 @@ elif menu == "Editar Registro":
             # Crear lista de opciones para el selectbox
             opciones_ingresos = []
             for idx, ingreso in enumerate(data["ingresos"]):
-                opciones_ingresos.append(f"[{idx}] ${ingreso['monto']:.2f} - {ingreso['descripcion']} ({ingreso['fecha']})")
+                fecha_formateada = pd.to_datetime(ingreso['fecha']).strftime("%d/%m/%Y")
+                opciones_ingresos.append(f"[{idx+1}] {fecha_formateada} - ${ingreso['monto']:.2f} - {ingreso['descripcion']}")
             
             # Selector de ingreso a editar
             ingreso_seleccionado = st.selectbox(
@@ -627,8 +628,8 @@ elif menu == "Editar Registro":
             )
             
             if ingreso_seleccionado:
-                # Obtener índice del ingreso seleccionado
-                idx_ingreso = int(ingreso_seleccionado.split("]")[0].replace("[", ""))
+                # Obtener índice del ingreso seleccionado (restar 1 porque mostramos idx+1)
+                idx_ingreso = int(ingreso_seleccionado.split("]")[0].replace("[", "")) - 1
                 ingreso_actual = data["ingresos"][idx_ingreso]
                 
                 st.subheader("✏️ Editar Datos del Ingreso")
@@ -690,7 +691,9 @@ elif menu == "Editar Registro":
             # Crear lista de opciones para el selectbox
             opciones_gastos = []
             for idx, gasto in enumerate(data["gastos"]):
-                opciones_gastos.append(f"[{idx}] ${gasto['monto']:.2f} - {gasto['descripcion']} - {gasto['categoria']} ({gasto['fecha']})")
+                fecha_formateada = pd.to_datetime(gasto['fecha']).strftime("%d/%m/%Y")
+                medio_pago = gasto.get('medio_pago', 'N/A')
+                opciones_gastos.append(f"[{idx+1}] {fecha_formateada} - ${gasto['monto']:.2f} - {gasto['descripcion']} - {gasto['categoria']} ({gasto['subcategoria']}) - {medio_pago}")
             
             # Selector de gasto a editar
             gasto_seleccionado = st.selectbox(
@@ -700,8 +703,8 @@ elif menu == "Editar Registro":
             )
             
             if gasto_seleccionado:
-                # Obtener índice del gasto seleccionado
-                idx_gasto = int(gasto_seleccionado.split("]")[0].replace("[", ""))
+                # Obtener índice del gasto seleccionado (restar 1 porque mostramos idx+1)
+                idx_gasto = int(gasto_seleccionado.split("]")[0].replace("[", "")) - 1
                 gasto_actual = data["gastos"][idx_gasto]
                 
                 st.subheader("✏️ Editar Datos del Gasto")
