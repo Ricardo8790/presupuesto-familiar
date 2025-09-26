@@ -632,6 +632,19 @@ elif menu == "Editar Registro":
                 idx_ingreso = int(ingreso_seleccionado.split("]")[0].replace("[", "")) - 1
                 ingreso_actual = data["ingresos"][idx_ingreso]
                 
+                # Detectar cambio en la selección y limpiar campos si es necesario
+                if "ingreso_seleccionado_anterior" not in st.session_state:
+                    st.session_state["ingreso_seleccionado_anterior"] = ingreso_seleccionado
+                
+                if st.session_state["ingreso_seleccionado_anterior"] != ingreso_seleccionado:
+                    # Limpiar los campos cuando cambia la selección
+                    keys_to_clear = ["edit_ingreso_monto", "edit_ingreso_desc", "edit_ingreso_fecha"]
+                    for key in keys_to_clear:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.session_state["ingreso_seleccionado_anterior"] = ingreso_seleccionado
+                    st.rerun()
+                
                 st.subheader("✏️ Editar Datos del Ingreso")
                 
                 # Campos de edición directa
@@ -706,6 +719,20 @@ elif menu == "Editar Registro":
                 # Obtener índice del gasto seleccionado (restar 1 porque mostramos idx+1)
                 idx_gasto = int(gasto_seleccionado.split("]")[0].replace("[", "")) - 1
                 gasto_actual = data["gastos"][idx_gasto]
+                
+                # Detectar cambio en la selección y limpiar campos si es necesario
+                if "gasto_seleccionado_anterior" not in st.session_state:
+                    st.session_state["gasto_seleccionado_anterior"] = gasto_seleccionado
+                
+                if st.session_state["gasto_seleccionado_anterior"] != gasto_seleccionado:
+                    # Limpiar los campos cuando cambia la selección
+                    keys_to_clear = ["edit_gasto_monto", "edit_gasto_desc", "edit_gasto_cat", 
+                                   "edit_gasto_subcat", "edit_gasto_mediopago", "edit_gasto_fecha"]
+                    for key in keys_to_clear:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.session_state["gasto_seleccionado_anterior"] = gasto_seleccionado
+                    st.rerun()
                 
                 st.subheader("✏️ Editar Datos del Gasto")
                 
