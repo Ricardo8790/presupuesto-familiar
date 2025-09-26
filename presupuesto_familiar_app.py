@@ -632,26 +632,13 @@ elif menu == "Editar Registro":
                 idx_ingreso = int(ingreso_seleccionado.split("]")[0].replace("[", "")) - 1
                 ingreso_actual = data["ingresos"][idx_ingreso]
                 
-                # Detectar cambio en la selección y limpiar campos si es necesario
-                if "ingreso_seleccionado_anterior" not in st.session_state:
-                    st.session_state["ingreso_seleccionado_anterior"] = ingreso_seleccionado
-                
-                if st.session_state["ingreso_seleccionado_anterior"] != ingreso_seleccionado:
-                    # Limpiar los campos cuando cambia la selección
-                    keys_to_clear = ["edit_ingreso_monto", "edit_ingreso_desc", "edit_ingreso_fecha"]
-                    for key in keys_to_clear:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    st.session_state["ingreso_seleccionado_anterior"] = ingreso_seleccionado
-                    st.rerun()
-                
                 st.subheader("✏️ Editar Datos del Ingreso")
                 
                 # Campos de edición directa
                 nuevo_monto_texto = st.text_input(
                     "Monto:", 
                     value=f"{ingreso_actual['monto']:.2f}",
-                    key="edit_ingreso_monto",
+                    key=f"edit_ingreso_monto_{idx_ingreso}",
                     help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
                 )
                 
@@ -668,13 +655,13 @@ elif menu == "Editar Registro":
                 nueva_descripcion = st.text_input(
                     "Descripción:",
                     value=ingreso_actual['descripcion'],
-                    key="edit_ingreso_desc"
+                    key=f"edit_ingreso_desc_{idx_ingreso}"
                 )
                 
                 nueva_fecha = st.date_input(
                     "Fecha:",
                     value=pd.to_datetime(ingreso_actual['fecha']).date(),
-                    key="edit_ingreso_fecha"
+                    key=f"edit_ingreso_fecha_{idx_ingreso}"
                 )
                 
                 # Botón de actualización
@@ -720,27 +707,13 @@ elif menu == "Editar Registro":
                 idx_gasto = int(gasto_seleccionado.split("]")[0].replace("[", "")) - 1
                 gasto_actual = data["gastos"][idx_gasto]
                 
-                # Detectar cambio en la selección y limpiar campos si es necesario
-                if "gasto_seleccionado_anterior" not in st.session_state:
-                    st.session_state["gasto_seleccionado_anterior"] = gasto_seleccionado
-                
-                if st.session_state["gasto_seleccionado_anterior"] != gasto_seleccionado:
-                    # Limpiar los campos cuando cambia la selección
-                    keys_to_clear = ["edit_gasto_monto", "edit_gasto_desc", "edit_gasto_cat", 
-                                   "edit_gasto_subcat", "edit_gasto_mediopago", "edit_gasto_fecha"]
-                    for key in keys_to_clear:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    st.session_state["gasto_seleccionado_anterior"] = gasto_seleccionado
-                    st.rerun()
-                
                 st.subheader("✏️ Editar Datos del Gasto")
                 
                 # Campos de edición directa
                 nuevo_monto_texto = st.text_input(
                     "Monto:", 
                     value=f"{gasto_actual['monto']:.2f}",
-                    key="edit_gasto_monto",
+                    key=f"edit_gasto_monto_{idx_gasto}",
                     help="Ingrese el nuevo monto (ej: 1.01, 150.99)"
                 )
                 
@@ -757,34 +730,34 @@ elif menu == "Editar Registro":
                 nueva_descripcion = st.text_input(
                     "Descripción:",
                     value=gasto_actual['descripcion'],
-                    key="edit_gasto_desc"
+                    key=f"edit_gasto_desc_{idx_gasto}"
                 )
                 
                 nueva_categoria = st.selectbox(
                     "Categoría:",
                     list(categorias.keys()),
                     index=list(categorias.keys()).index(gasto_actual['categoria']),
-                    key="edit_gasto_cat"
+                    key=f"edit_gasto_cat_{idx_gasto}"
                 )
                 
                 nueva_subcategoria = st.selectbox(
                     "Subcategoría:",
                     categorias[nueva_categoria],
                     index=categorias[nueva_categoria].index(gasto_actual['subcategoria']) if gasto_actual['subcategoria'] in categorias[nueva_categoria] else 0,
-                    key="edit_gasto_subcat"
+                    key=f"edit_gasto_subcat_{idx_gasto}"
                 )
                 
                 nuevo_medio_pago = st.selectbox(
                     "Medio de pago:",
                     ["Efectivo", "Tarjeta de Crédito", "Transferencia"],
                     index=["Efectivo", "Tarjeta de Crédito", "Transferencia"].index(gasto_actual.get('medio_pago', 'Efectivo')) if gasto_actual.get('medio_pago', 'Efectivo') in ["Efectivo", "Tarjeta de Crédito", "Transferencia"] else 0,
-                    key="edit_gasto_mediopago"
+                    key=f"edit_gasto_mediopago_{idx_gasto}"
                 )
                 
                 nueva_fecha = st.date_input(
                     "Fecha:",
                     value=pd.to_datetime(gasto_actual['fecha']).date(),
-                    key="edit_gasto_fecha"
+                    key=f"edit_gasto_fecha_{idx_gasto}"
                 )
                 
                 # Botón de actualización
