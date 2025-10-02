@@ -5,13 +5,31 @@ import json
 import os
 from datetime import datetime
 import altair as alt
-
-from sqlalchemy import create_engine, text
-
-# ⚠️ Reemplaza con tus credenciales de Supabase
-DATABASE_URL = "postgresql+psycopg2://postgres:GitHubRicardo87@db.abcd1234.supabase.co:5432/postgres"
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+load_dotenv()  # Carga variables del archivo .env
 
 engine = create_engine(DATABASE_URL)
+
+# Cargar desde variables de entorno o Streamlit secrets
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Si estás en Streamlit Cloud, usar secrets
+if DATABASE_URL is None and hasattr(st, 'secrets'):
+    try:
+        DATABASE_URL = st.secrets["DATABASE_URL"]
+    except:
+        pass
+
+if DATABASE_URL:
+    try:
+        engine = create_engine(DATABASE_URL)
+    except Exception as e:
+        st.error(f"Error conectando a la base de datos: {e}")
+        engine = None
+else:
+    st.warning("Configuración de base de datos no encontrada")
+    engine = None
 
 # Configuración de la base de datos
 try:
@@ -989,4 +1007,5 @@ elif menu == "Eliminar Registro":
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
 
