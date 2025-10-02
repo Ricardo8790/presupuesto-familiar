@@ -20,7 +20,7 @@ DATABASE_URL = os.getenv("https://jcbmizozujcmxembdcmw.supabase.co")
 # Si estás en Streamlit Cloud, intentar usar secrets
 if DATABASE_URL is None:
     try:
-        DATABASE_URL = st.secrets["https://jcbmizozujcmxembdcmw.supabase.co"]
+        DATABASE_URL = st.secrets ["presupuesto_familiar"]["https://jcbmizozujcmxembdcmw.supabase.co"]
     except:
         pass
 
