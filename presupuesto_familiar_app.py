@@ -6,6 +6,20 @@ import os
 from datetime import datetime
 import altair as alt
 
+from sqlalchemy import create_engine, text
+
+# ⚠️ Reemplaza con tus credenciales de Supabase
+DATABASE_URL = "postgresql+psycopg2://postgres:GitHubRicardo87@db.abcd1234.supabase.co:5432/postgres"
+
+engine = create_engine(DATABASE_URL)
+## BORRAR
+with engine.connect() as conn:
+    result = conn.execute(text("SELECT NOW()"))
+    for row in result:
+        print("Conexión exitosa a PostgreSQL. Hora actual:", row[0])
+## BORRAR
+
+
 # Configuración de la página
 st.set_page_config(page_title="Presupuesto Familiar", layout="wide")
 
@@ -55,7 +69,7 @@ presupuesto = cargar_presupuesto()
 categorias = {
     "Alimentación": ["Supermercado", "Restaurantes", "Comida rápida", "Botellón Agua", "Tienda Barrio"],
     "Vivienda": ["Hipoteca/Alquiler", "Servicios básicos", "Mantenimiento"],
-    "Transporte": ["Combustible", "Transporte público", "Mantenimiento vehículo"],
+    "Transporte": ["Combustible", "Transporte público", "Mantenimiento vehículo", "Seguro Vehicular", "Matricula vehículo"],
     "Salud": ["Medicinas", "Consultas médicas", "Seguros", "Peluquería/Estetica"],
     "Educación": ["Colegiaturas", "Libros", "Cursos y talleres"],
     "Entretenimiento": ["Cine", "Eventos", "Suscripciones", "Paseos Fin de Semana"],
