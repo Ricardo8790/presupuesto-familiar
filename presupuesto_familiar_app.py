@@ -7,30 +7,38 @@ from datetime import datetime
 import altair as alt
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
-load_dotenv()  # Carga variables del archivo .env
 
-engine = create_engine(DATABASE_URL)
+# Cargar variables de entorno
+load_dotenv()
 
-# Cargar desde variables de entorno o Streamlit secrets
+# Configuración de la página (debe estar al inicio)
+st.set_page_config(page_title="Presupuesto Familiar", layout="wide")
+
+# ======= Configuración de la base de datos =======
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Si estás en Streamlit Cloud, usar secrets
-if DATABASE_URL is None and hasattr(st, 'secrets'):
+# Si estás en Streamlit Cloud, intentar usar secrets
+if DATABASE_URL is None:
     try:
         DATABASE_URL = st.secrets["DATABASE_URL"]
     except:
         pass
 
+# Crear conexión a la base de datos
+engine = None
 if DATABASE_URL:
     try:
         engine = create_engine(DATABASE_URL)
+        # Probar conexión
+        with engine.connect() as conn:
+            st.sidebar.success("🟢 Conectado a PostgreSQL")
     except Exception as e:
-        st.error(f"Error conectando a la base de datos: {e}")
+        st.sidebar.error(f"❌ Error de conexión: {str(e)}")
         engine = None
 else:
-    st.warning("Configuración de base de datos no encontrada")
-    engine = None
+    st.sidebar.warning("⚠️ Base de datos no configurada")
 
+# ======= Archivos de almacenamiento =======
 # Configuración de la base de datos
 try:
     DATABASE_URL = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL")
@@ -1007,5 +1015,6 @@ elif menu == "Eliminar Registro":
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
 
 
