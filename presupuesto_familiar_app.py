@@ -12,12 +12,22 @@ from sqlalchemy import create_engine, text
 DATABASE_URL = "postgresql+psycopg2://postgres:GitHubRicardo87@db.abcd1234.supabase.co:5432/postgres"
 
 engine = create_engine(DATABASE_URL)
-## BORRAR
-with engine.connect() as conn:
-    result = conn.execute(text("SELECT NOW()"))
-    for row in result:
-        print("Conexión exitosa a PostgreSQL. Hora actual:", row[0])
-## BORRAR
+
+# Configuración de la base de datos
+try:
+    DATABASE_URL = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL")
+    
+    if DATABASE_URL:
+        engine = create_engine(DATABASE_URL)
+        # Probar conexión
+        with engine.connect() as conn:
+            st.sidebar.success("🟢 Conectado a PostgreSQL")
+    else:
+        st.error("⚠️ Configuración de base de datos no encontrada")
+        engine = None
+except Exception as e:
+    st.error(f"❌ Error de conexión: {str(e)}")
+    engine = None
 
 
 # Configuración de la página
@@ -979,3 +989,4 @@ elif menu == "Eliminar Registro":
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
