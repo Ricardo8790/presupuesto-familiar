@@ -1,6 +1,5 @@
-gspread
-gspread-dataframe
-google-auth
 streamlit
 pandas
 altair
+sqlalchemy
+psycopg2-binary
