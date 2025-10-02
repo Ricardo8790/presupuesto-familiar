@@ -15,12 +15,12 @@ load_dotenv()
 st.set_page_config(page_title="Presupuesto Familiar", layout="wide")
 
 # ======= Configuración de la base de datos =======
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("https://jcbmizozujcmxembdcmw.supabase.co")
 
 # Si estás en Streamlit Cloud, intentar usar secrets
 if DATABASE_URL is None:
     try:
-        DATABASE_URL = st.secrets["DATABASE_URL"]
+        DATABASE_URL = st.secrets["https://jcbmizozujcmxembdcmw.supabase.co"]
     except:
         pass
 
@@ -1015,6 +1015,7 @@ elif menu == "Eliminar Registro":
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
 
 
 
