@@ -7,6 +7,17 @@ from datetime import datetime
 import altair as alt
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
+from st_supabase_connection import SupabaseConnection
+
+# Inicializar la conexión a Supabase usando los secretos
+# Streamlit leerá automáticamente los secretos de tu panel de Streamlit Cloud
+supabase_conn = st.connection(
+    "supabase_connection",
+    type=SupabaseConnection,
+    url=st.secrets["https://jcbmizozujcmxembdcmw.supabase.co"],
+    key=st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjYm1pem96dWpjbXhlbWJkY213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MjIzMTIsImV4cCI6MjA3NDk5ODMxMn0.PnnIguXrfc5hlPJbHBy433ELFZyouIWZ1O97kYU1z24"]
+)
+
 
 # Cargar variables de entorno
 load_dotenv()
@@ -1015,6 +1026,7 @@ elif menu == "Eliminar Registro":
                 st.rerun()
         elif texto_confirmacion and texto_confirmacion != "ELIMINAR TODO":
             st.error("❌ Debe escribir exactamente 'ELIMINAR TODO' para proceder.")
+
 
 
 
